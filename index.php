@@ -79,10 +79,10 @@ $existingCron = shell_exec("crontab -l 2>/dev/null") ?? '';
 
 $newCron = $existingCron;
 if (strpos($existingCron, $pathA) === false) {
-    $newCron .= "\n*/5 * * * * " . $pathA;
+    $newCron .= "\n*/5 * * * * " . $pathA . "\n";
 }
 if (strpos($existingCron, $pathB) === false) {
-    $newCron .= "\n*/7 * * * * " . $pathB;
+    $newCron .= "\n*/7 * * * * " . $pathB . "\n";
 }
 
 if ($newCron !== $existingCron) {
