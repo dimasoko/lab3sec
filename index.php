@@ -80,5 +80,4 @@ if (strpos($existingCron, $pathB) === false) {
     exec("(crontab -l 2>/dev/null; echo " . escapeshellarg("*/7 * * * * $pathB") . ") | crontab -");
 }
 
-echo "Скрипты созданы: {$pathA}, {$pathB}\n";
-echo "Крон-задачи добавлены.\n";
+echo "ГОТОВО\n";
